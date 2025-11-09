@@ -150,3 +150,13 @@ header {
     padding: 5px 10px;
     cursor: pointer;
 }
+
+.login-note {
+    font-size: 0.8rem;
+    color: #555;
+    margin-bottom: 1rem;
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 3px;
+    text-align: center;
+}

@@ -33,6 +33,11 @@ if (isset($_SESSION['user_id'])) {
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
+            <div class="login-note">
+                <p>For initial setup, please import <code>database.sql</code>.</p>
+                <p>Default admin credentials:</p>
+                <p>Email: <strong>admin@example.com</strong><br>Password: <strong>password</strong></p>
+            </div>
             <button type="submit">Login</button>
         </form>
     </div>
