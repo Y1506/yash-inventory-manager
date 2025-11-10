@@ -1,58 +1,73 @@
 # Inventory Manager and Tracker
 
-This is a web-based inventory management and tracker application built with PHP, MySQL, HTML, CSS, and JavaScript.
+This is a web-based inventory management and tracker application built with PHP, MySQL, HTML, CSS, and JavaScript. It provides a comprehensive set of features to manage inventory, track stock movements, and handle sales and reporting.
 
 ## Features
 
-*   **Dashboard:** At-a-glance view of key inventory metrics.
-*   **Item Management:** Add, edit, and archive items.
-*   **Stock Movements:** Check-in, checkout, and adjustments.
-*   **Checkout System:** A cart-style checkout process.
-*   **Transaction History:** View a log of all inventory transactions.
+*   **Dashboard:** An overview of key inventory metrics.
+*   **Item Management:** Add, edit, and manage inventory items.
+*   **Stock Control:** Manage stock levels, including check-ins and adjustments.
+*   **Checkout System:** A simple point-of-sale interface for selling items.
+*   **Transaction History:** A complete log of all inventory transactions.
 *   **User Management:** Manage users with different roles (admin, clerk, viewer).
-*   **Supplier Management:** Keep track of suppliers.
-*   **Reporting:** Generate reports for inventory valuation, stock movements, and low-stock items.
-*   **CSV Export:** Export reports to CSV format.
-*   **Role-Based Access Control:** Different user roles have different permissions.
+*   **Supplier Management:** Keep track of supplier information.
+*   **Reporting:** Generate reports on inventory status and sales.
+*   **Role-Based Access Control:** Different user roles have different permissions, restricting access to sensitive features.
 
-## How to Set Up and Run the Project using XAMPP
+## Technologies Used
 
-1.  **Install XAMPP:** Download and install XAMPP from the [official website](https://www.apachefriends.org/index.html).
+*   **Frontend:** HTML, CSS, JavaScript
+*   **Backend:** PHP
+*   **Database:** MySQL
 
-2.  **Start Apache and MySQL:** Open the XAMPP Control Panel and start the Apache and MySQL services.
+## XAMPP Setup Instructions
 
-3.  **Place Project in `htdocs`:** Place the project folder in the `htdocs` directory of your XAMPP installation (usually `c:\xampp\htdocs`).
+These instructions will guide you through setting up and running the project on your local machine using XAMPP.
 
-4.  **Create the Database:**
-    *   Open your web browser and go to `http://localhost/phpmyadmin`.
-    *   Click on the "Databases" tab.
-    *   Enter `inventory_manager` in the "Create database" field and click "Create".
+1.  **Install XAMPP:**
+    *   Download and install XAMPP from the [official website](https://www.apachefriends.org/index.html).
 
-5.  **Import the Database Schema:**
-    *   Select the `inventory_manager` database from the left-hand menu.
-    *   Click on the "Import" tab.
-    *   Click "Choose File" and select the `database.sql` file from the project directory.
-    *   Click "Go" to import the schema.
+2.  **Start Apache and MySQL:**
+    *   Open the XAMPP Control Panel and start the **Apache** and **MySQL** services.
 
-6.  **Configure the Database Connection:**
-    *   In the `php` directory of the project, rename `config-sample.php` to `config.php`.
-    *   Open `config.php` and update the database credentials if you have changed the default MySQL username and password.
+3.  **Place Project in `htdocs`:**
+    *   Place the project folder inside the `htdocs` directory of your XAMPP installation. The `htdocs` folder is usually located at `c:\xampp\htdocs`.
 
-7.  **Access the Application:**
-    *   Open your web browser and go to `http://localhost/inventory-manager-and-tracker` (or the name of your project folder).
+4.  **Project Folder Name:**
+    *   **Important:** The project folder has spaces in its name (`Inventory mangager and tracker`). This can cause "Not Found" errors in the browser. You have two options:
+        *   **Option 1 (Recommended):** Rename the folder to `Inventory-manager-and-tracker`. This is the standard practice and will avoid URL issues.
+        *   **Option 2:** Keep the folder name as is, but you will have to use `%20` to represent the spaces in the URL.
 
-## How to Use the Application
+5.  **Create the Database:**
+    *   Open your web browser and navigate to `http://localhost/phpmyadmin`.
+    *   Click on the **Databases** tab.
+    *   In the "Create database" field, enter `inventory_db` and click **Create**.
 
-*   **Admin Login:**
-    *   **Email:** admin@example.com
-    *   **Password:** password
-*   **Clerk Login:**
-    *   **Email:** clerk@example.com
-    *   **Password:** password
-*   **Viewer Login:**
-    *   **Email:** viewer@example.com
-    *   **Password:** password
+6.  **Import the Database Schema:**
+    *   In phpMyAdmin, select the `inventory_db` database from the left-hand menu.
+    *   Click on the **Import** tab.
+    *   Click **Choose File** and select the `database.sql` file located in the project folder.
+    *   Click **Go** at the bottom of the page to import the database schema.
 
-**Note:** You will need to add some sample data to the database to see the application in action. You can start by adding some categories and suppliers, then add some items.
+7.  **Database Configuration:**
+    *   The database configuration file is located at `php/config.php`. It has been pre-configured with the default XAMPP database credentials:
+        *   **Server:** `localhost`
+        *   **Username:** `root`
+        *   **Password:** (empty)
+        *   **Database Name:** `inventory_db`
+    *   If you have a different MySQL password, you will need to update it in this file.
 
-**Note:** A `dummy.txt` file is created to satisfy a tool requirement. It can be safely ignored.
+8.  **Access the Application:**
+    *   Open your web browser and navigate to the appropriate URL:
+        *   If you renamed the folder (Option 1): `http://localhost/Inventory-manager-and-tracker/`
+        *   If you did not rename the folder (Option 2): `http://localhost/Inventory%20mangager%20and%20tracker/`
+
+## Usage
+
+After successfully setting up the project, you can log in with the default admin credentials:
+
+*   **Default Admin Login:**
+    *   **Email:** `admin@example.com`
+    *   **Password:** `password`
+
+You can add new users with different roles through the "Employees" section in the admin panel.

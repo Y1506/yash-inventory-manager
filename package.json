@@ -1,0 +1,24 @@
+{
+  "name": "inventory-mangager-and-tracker",
+  "version": "1.0.0",
+  "description": "This is a web-based inventory management and tracker application built with PHP, MySQL, HTML, CSS, and JavaScript. It provides a comprehensive set of features to manage inventory, track stock movements, and handle sales and reporting.",
+  "main": "index.js",
+  "scripts": {
+    "build": "./node_modules/.bin/tailwindcss -i css/style.css -o css/output.css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Y1506/yash-inventory-manager.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Y1506/yash-inventory-manager/issues"
+  },
+  "homepage": "https://github.com/Y1506/yash-inventory-manager#readme",
+  "devDependencies": {
+    "tailwindcss": "^4.1.17"
+  }
+}

@@ -1,7 +1,11 @@
 <?php
 // Please update the following with your database credentials
-define('DB_SERVER', getenv('DB_SERVER'));
-define('DB_USERNAME', getenv('DB_USERNAME'));
-define('DB_PASSWORD', getenv('DB_PASSWORD'));
-define('DB_NAME', getenv('DB_NAME'));
+
+// NOTE: The following configuration is for local development with XAMPP.
+// For production, it is recommended to use environment variables.
+
+define('DB_SERVER', 'localhost');
+define('DB_USERNAME', 'root');
+define('DB_PASSWORD', '');
+define('DB_NAME', 'inventory_db');
 ?>

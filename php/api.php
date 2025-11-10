@@ -32,8 +32,8 @@ switch ($action) {
     case 'edit_item':
         edit_item();
         break;
-    case 'archive_item':
-        archive_item();
+    case 'delete_item':
+        delete_item();
         break;
     case 'add_supplier':
         add_supplier();
@@ -44,13 +44,28 @@ switch ($action) {
     case 'delete_supplier':
         delete_supplier();
         break;
-    case 'export_movement_report':
-        export_movement_report();
+    case 'export_sales_report':
+        export_sales_report();
+        break;
+    case 'get_low_stock_count':
+        get_low_stock_count();
         break;
     // Add other cases for other API endpoints here
     default:
         echo json_encode(['error' => 'Invalid action']);
         break;
+}
+
+function get_low_stock_count() {
+    global $conn;
+
+    $sql = "SELECT COUNT(*) as count FROM inventory_items WHERE quantity <= min_stock_threshold";
+    $result = $conn->query($sql);
+    $count = $result->fetch_assoc()['count'];
+
+    echo json_encode(['count' => $count]);
+
+    $conn->close();
 }
 
 function login() {
@@ -193,35 +208,57 @@ function checkout() {
     try {
         $cart_items = json_decode($_POST['cart_items'], true);
         $customer_name = $_POST['customer_name'];
-        $customer_contact = $_POST['customer_contact'];
+        $payment_method = $_POST['payment_method'];
         $user_id = $_SESSION['user_id'];
+        $total_amount = 0;
+
+        // Calculate total amount
+        foreach ($cart_items as $item) {
+            $item_id = $item['id'];
+            $quantity = $item['quantity'];
+
+            $sql = "SELECT price FROM inventory_items WHERE id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $item_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $db_item = $result->fetch_assoc();
+            $total_amount += $db_item['price'] * $quantity;
+        }
+
+        // Create sale record
+        $sale_number = 'SALE-' . time();
+        $sql = "INSERT INTO sales (sale_number, customer_name, total_amount, payment_method, status) VALUES (?, ?, ?, ?, 'completed')";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssds", $sale_number, $customer_name, $total_amount, $payment_method);
+        $stmt->execute();
+        $sale_id = $stmt->insert_id;
 
         foreach ($cart_items as $item) {
             $item_id = $item['id'];
             $quantity = $item['quantity'];
 
             // Check stock
-            $sql = "SELECT current_quantity, selling_price FROM items WHERE id = ?";
+            $sql = "SELECT quantity FROM inventory_items WHERE id = ?";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("i", $item_id);
             $stmt->execute();
             $result = $stmt->get_result();
             $db_item = $result->fetch_assoc();
 
-            if ($db_item['current_quantity'] < $quantity) {
+            if ($db_item['quantity'] < $quantity) {
                 throw new Exception("Not enough stock for item ID: $item_id");
             }
 
-            // Create transaction record
-            $unit_price = $db_item['selling_price'];
-            $sql = "INSERT INTO transactions (type, item_id, quantity, unit_price, user_id, customer_name, customer_contact) VALUES ('checkout', ?, ?, ?, ?, ?, ?)";
+            // Create sale item record
+            $sql = "INSERT INTO sale_items (sale_id, item_id, quantity) VALUES (?, ?, ?)";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("iiidss", $item_id, $quantity, $unit_price, $user_id, $customer_name, $customer_contact);
+            $stmt->bind_param("iii", $sale_id, $item_id, $quantity);
             $stmt->execute();
 
             // Update item quantity
-            $new_quantity = $db_item['current_quantity'] - $quantity;
-            $sql = "UPDATE items SET current_quantity = ? WHERE id = ?";
+            $new_quantity = $db_item['quantity'] - $quantity;
+            $sql = "UPDATE inventory_items SET quantity = ? WHERE id = ?";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("ii", $new_quantity, $item_id);
             $stmt->execute();
@@ -244,7 +281,7 @@ function search_items() {
 
     $search_term = $_GET['term'];
 
-    $sql = "SELECT id, sku, name, selling_price FROM items WHERE (sku LIKE ? OR name LIKE ?) AND status = 'active'";
+    $sql = "SELECT id, sku, name, price FROM inventory_items WHERE (sku LIKE ? OR name LIKE ?)";
     $stmt = $conn->prepare($sql);
     $search_param = "%" . $search_term . "%";
     $stmt->bind_param("ss", $search_param, $search_param);
@@ -267,28 +304,19 @@ function add_item() {
 
     $sku = $_POST['sku'];
     $name = $_POST['name'];
-    $category_id = $_POST['category_id'];
-    $supplier_id = $_POST['supplier_id'];
-    $unit = $_POST['unit'];
-    $cost_price = $_POST['cost_price'];
-    $selling_price = $_POST['selling_price'];
-    $reorder_level = $_POST['reorder_level'];
-    $current_quantity = $_POST['current_quantity'];
+    $quantity = $_POST['quantity'];
+    $min_stock_threshold = $_POST['min_stock_threshold'];
+    $price = $_POST['price'];
+    $cost = $_POST['cost'];
+    $category = $_POST['category'];
+    $supplier = $_POST['supplier'];
+    $storage_location = $_POST['storage_location'];
 
-    $sql = "INSERT INTO items (sku, name, category_id, supplier_id, unit, cost_price, selling_price, reorder_level, current_quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO inventory_items (sku, name, quantity, min_stock_threshold, price, cost, category, supplier, storage_location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssiisddii", $sku, $name, $category_id, $supplier_id, $unit, $cost_price, $selling_price, $reorder_level, $current_quantity);
+    $stmt->bind_param("ssiiddsss", $sku, $name, $quantity, $min_stock_threshold, $price, $cost, $category, $supplier, $storage_location);
     
     if ($stmt->execute()) {
-        if ($current_quantity > 0) {
-            $item_id = $stmt->insert_id;
-            $user_id = $_SESSION['user_id'];
-            $sql_trans = "INSERT INTO transactions (type, item_id, quantity, unit_price, user_id, notes) VALUES ('check-in', ?, ?, ?, ?, 'Initial stock')";
-            $stmt_trans = $conn->prepare($sql_trans);
-            $stmt_trans->bind_param("iidi", $item_id, $current_quantity, $cost_price, $user_id);
-            $stmt_trans->execute();
-            $stmt_trans->close();
-        }
         header('Location: ../items.php');
     } else {
         echo "Error: " . $sql . "<br>" . $conn->error;
@@ -304,17 +332,17 @@ function edit_item() {
     $item_id = $_GET['id'];
     $sku = $_POST['sku'];
     $name = $_POST['name'];
-    $category_id = $_POST['category_id'];
-    $supplier_id = $_POST['supplier_id'];
-    $unit = $_POST['unit'];
-    $cost_price = $_POST['cost_price'];
-    $selling_price = $_POST['selling_price'];
-    $reorder_level = $_POST['reorder_level'];
-    $status = $_POST['status'];
+    $quantity = $_POST['quantity'];
+    $min_stock_threshold = $_POST['min_stock_threshold'];
+    $price = $_POST['price'];
+    $cost = $_POST['cost'];
+    $category = $_POST['category'];
+    $supplier = $_POST['supplier'];
+    $storage_location = $_POST['storage_location'];
 
-    $sql = "UPDATE items SET sku = ?, name = ?, category_id = ?, supplier_id = ?, unit = ?, cost_price = ?, selling_price = ?, reorder_level = ?, status = ? WHERE id = ?";
+    $sql = "UPDATE inventory_items SET sku = ?, name = ?, quantity = ?, min_stock_threshold = ?, price = ?, cost = ?, category = ?, supplier = ?, storage_location = ? WHERE id = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssiisddisi", $sku, $name, $category_id, $supplier_id, $unit, $cost_price, $selling_price, $reorder_level, $status, $item_id);
+    $stmt->bind_param("ssiiddsssi", $sku, $name, $quantity, $min_stock_threshold, $price, $cost, $category, $supplier, $storage_location, $item_id);
 
     if ($stmt->execute()) {
         header('Location: ../items.php');
@@ -326,12 +354,12 @@ function edit_item() {
     $conn->close();
 }
 
-function archive_item() {
+function delete_item() {
     global $conn;
 
     $item_id = $_GET['id'];
 
-    $sql = "UPDATE items SET status = 'inactive' WHERE id = ?";
+    $sql = "DELETE FROM inventory_items WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $item_id);
 
@@ -426,7 +454,7 @@ function delete_supplier() {
     $conn->close();
 }
 
-function export_movement_report() {
+function export_sales_report() {
     global $conn;
 
     if ($_SESSION['user_role'] != 'admin') {
@@ -434,35 +462,30 @@ function export_movement_report() {
         exit;
     }
 
-    $sql_movement = "SELECT transactions.*, items.name as item_name, users.name as user_name FROM transactions
-                     LEFT JOIN items ON transactions.item_id = items.id
-                     LEFT JOIN users ON transactions.user_id = users.id WHERE 1=1";
+    $sql_sales = "SELECT * FROM sales WHERE 1=1";
 
     if (!empty($_GET['start_date'])) {
-        $sql_movement .= " AND DATE(transactions.timestamp) >= '" . $_GET['start_date'] . "'";
+        $sql_sales .= " AND DATE(timestamp) >= '" . $_GET['start_date'] . "'";
     }
     if (!empty($_GET['end_date'])) {
-        $sql_movement .= " AND DATE(transactions.timestamp) <= '" . $_GET['end_date'] . "'";
+        $sql_sales .= " AND DATE(timestamp) <= '" . $_GET['end_date'] . "'";
     }
-    if (!empty($_GET['item_id'])) {
-        $sql_movement .= " AND transactions.item_id = " . $_GET['item_id'];
+    if (!empty($_GET['customer_name'])) {
+        $sql_sales .= " AND customer_name LIKE '%" . $_GET['customer_name'] . "%'";
     }
-    if (!empty($_GET['user_id'])) {
-        $sql_movement .= " AND transactions.user_id = " . $_GET['user_id'];
-    }
-    if (!empty($_GET['type'])) {
-        $sql_movement .= " AND transactions.type = '" . $_GET['type'] . "'";
+    if (!empty($_GET['payment_method'])) {
+        $sql_sales .= " AND payment_method = '" . $_GET['payment_method'] . "'";
     }
 
-    $sql_movement .= " ORDER BY transactions.timestamp DESC";
-    $result_movement = $conn->query($sql_movement);
+    $sql_sales .= " ORDER BY timestamp DESC";
+    $result_sales = $conn->query($sql_sales);
 
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename=movement_report.csv');
+    header('Content-Disposition: attachment; filename=sales_report.csv');
     $output = fopen('php://output', 'w');
-    fputcsv($output, array('Timestamp', 'Type', 'Item', 'Quantity', 'Unit Price', 'User', 'Customer'));
+    fputcsv($output, array('Sale Number', 'Customer Name', 'Total Amount', 'Payment Method', 'Status', 'Timestamp'));
 
-    while ($row = $result_movement->fetch_assoc()) {
+    while ($row = $result_sales->fetch_assoc()) {
         fputcsv($output, $row);
     }
 

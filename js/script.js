@@ -1,4 +1,26 @@
 document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+    }
+
+    const lowStockBadge = document.getElementById('low-stock-badge');
+
+    function updateLowStockBadge() {
+        fetch('php/api.php?action=get_low_stock_count')
+            .then(response => response.json())
+            .then(data => {
+                lowStockBadge.textContent = data.count;
+            });
+    }
+
+    // Update the badge every 30 seconds
+    setInterval(updateLowStockBadge, 30000);
+
     const itemSearchInput = document.getElementById('item-search-input');
     const itemSearchResults = document.getElementById('item-search-results');
     const cartItemsContainer = document.getElementById('cart-items');
@@ -38,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 id: item.id,
                 name: item.name,
                 sku: item.sku,
-                price: item.selling_price,
+                price: item.price,
                 quantity: 1
             });
         }
@@ -54,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cartItemDiv.innerHTML = `
                 <span>${item.name}</span>
                 <input type="number" value="${item.quantity}" min="1" data-index="${index}">
-                <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                <span>₹${(item.price * item.quantity).toFixed(2)}</span>
                 <button class="remove-from-cart" data-index="${index}">Remove</button>
             `;
             cartItemsContainer.appendChild(cartItemDiv);
@@ -62,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         const totalDiv = document.createElement('div');
-        totalDiv.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
+        totalDiv.innerHTML = `<strong>Total: ₹${total.toFixed(2)}</strong>`;
         cartItemsContainer.appendChild(totalDiv);
 
         // Add event listeners for quantity changes and remove buttons
